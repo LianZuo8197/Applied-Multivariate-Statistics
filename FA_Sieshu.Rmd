@@ -1,0 +1,137 @@
+---
+title: "Factor Analysis - Seishu data"
+author: "T Shapla"
+date: "11/29/2023"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = T, comment="", warning = F, results=T, message = F)
+```
+
+
+# Example: Seishu data
+
+For 30 brands of Japanese Seishu wine, Siotani et al. (1963) studied the relationship between $y_1$ = taste, $y_2$ = odor, and $x_1$ = pH, $x_2$ = acidity 1, $x_3$ = acidity 2, $x_4$ = sake meter, $x_5$ = direct reducing sugar, $x_6$ = total sugar, $x_7$ = alcohol, $x_8$ = formyl-nitrogen. The data 'Seishu' is given in Canvas.
+
+We will carry out a factor analysis of the data to describe the covariance or correlation structure of these 10 variables using a smaller number of factors.  
+
+
+```{r echo=T, comment=""}
+setwd("D:/LianZuo/Applied Statistics Course Materials/STAT 577 - Applied Multivariate Statistics/data-577")
+seishu=read.table("Seishu.dat")
+colnames(seishu)=c("taste", "odor", "pH", "acid1", "acid2", "sake-meter", "r.sugar", "t.sugar", "alcohol", "formyl.n")
+head(seishu, 3)
+dim(seishu)
+```
+
+Before we perform factor analysis, let us first do a preliminary analysis to check how many factors we may consider in the study where the number of observed variables is 10, $p=10$.
+
+Using the criteria: Choose m equal to the number of eigenvalues of the correlation matrix greater than the average eigenvalue, we see that first four eigenvalues are greater than the mean value of 1. 
+
+```{r}
+ev.seishu=eigen(cor(seishu))$values
+ev.seishu
+mean(ev.seishu)
+which(ev.seishu>mean(ev.seishu))
+```
+
+We also plot the eigenvalues of the correlation matrix R and see that a sharp fall occurs at 4th eigenvalue and afterwards the line has a very small slope and becomes more flat.  
+
+```{r}
+library(ggplot2)
+x=1:10
+ev.seishu.data=data.frame(cbind(x, ev.seishu))
+ggplot(ev.seishu.data, mapping = aes(x=x, y=ev.seishu))+geom_point()+geom_line()
+
+```
+
+Based on these two criteria above, we may consider 4 factors in our study. 
+
+
+In R, factor analysis is implemented by the factanal() function from build-in stats package. The function performs maximum-likelihood factor analysis on the  correlation matrix calculated from the data matrix. The number of factors to be fitted is specified by the argument 'factors'. At first, we will not use any rotation specified by rotation="none" in factanal() function. 
+
+
+```{r }
+seishu.fac.none=factanal(seishu, factors=4, rotation = "none")
+seishu.fac.none
+```
+
+The first chunk provides the estimated uniquenesses (variance of error terms), $\hat \psi_i$, $i=1,2,...,p$ which range from 0 to 1. The uniqueness, sometimes referred to as noise, specific variance or residual variance corresponds to the proportion of variability in a variable, which can not be explained by the underlying factors. A high uniqueness for a variable indicates that the factors do not account well for its variance.
+
+The second chuck provides the estimated loadings for factors. Note that when a factor analysis is performed based on a correlation matrix, loading $\lambda _{ij}$ is the estimated correlation between ith variable $y_i$ and jth factor $f_j$. For example, 0.565 is the sample correlation between odor and factor 3. 
+
+Using a cutoff value of 0.5 for factor loadings, we make the following observations:
+
+- Factor 1 is primarily a measure of pH, reducing sugar and total sugar variables. 
+
+- Variables pH, acidity 2, sake-meter, alcohol and formyl-nitrogen can be associated with Factor 2. 
+
+- Variables taste and odor can be described by Factor 3. 
+
+- Factor 4 can be considered as a measure of sake-meter and alcohol variables. 
+
+Rest of the outputs will be discussed later part of this documentation. 
+
+It appears that there may be clear distinction between factors for this data. However, there are situations where loadings are mostly of moderate size and a factor rotation method is needed to be applied to make the description of factors more straightforward.  
+
+Let us now apply "varimax" rotation to seishu data.  
+
+```{r }
+seishu.fac.vm=factanal(seishu, factors=4, rotation = "varimax")
+seishu.fac.vm
+```
+# Explanation of Outputs
+
+The first chunk provides the estimated uniquenesses (variance of error terms), $\hat \psi_i$, $i=1,2,...,p$. Note that the uniquenesses remain the same with and without rotation technique. 
+
+The second chuck provides the estimated loadings for factors after applying the varimax rotation. Using a threshold value of 0.5, variables pH, acidity 2 and formyl-nitrogen can be described by factor 1; variables sake meter, reducing sugar and total sugar constitutes factor 2; variables taste and odor can be associated with factor 3, whereas acidity 1 and alcohol are aligned with factor 4. 
+
+ 
+The first row in the table beneath the loadings is  'SS loadings'. 'SS loadings' gives the sum of squared loadings associated with a factor. For example, SS loadings of 2.719 is found by computing the sum of squares of loadings associated with factor 1: 
+
+$2.719 = 0.11^2+0.814^2+0.318^2+0.912^2+0.438^2+0.391^2+0.273^2+0.828^2$.
+
+A factor is worth keeping if the SS loading is greater than 1 (Kaiser’s rule). The SS loadings provides the total variance in original variables that is explained by a given factor. 
+
+The proportion of variation explained by each factor is given by the row 'Proportion Var', and is calculated as given below based on a correlation matrix :
+
+$(SS loadings)/trace(R) = (SS loadings)/p$, where $trace(R)=p$ , $p$ is the number of variables in the data, and $R$ is the sample correlation matrix. 
+
+The row 'Cumulative Var' gives the cumulative proportion of variance explained. These numbers range from 0 to 1. 
+
+The last section of the output shows the results of a hypothesis test. The null hypothesis, $H_0$, is that the number of factors considered in the model is sufficient. We reject $H_0$ at 5% level of significance if the p-value is less than 0.05. Such a result indicates that the number of factors $m$ is too small and more factors are needed to include. In contrast, we do not reject $H_0$ if the p-value exceeds 0.05. Such a result indicates that there are likely enough (or more than enough) factors included in the model. The high p-value in our example above leads us to not reject the $H_0$, and indicates that we have fitted an appropriate model. This hypothesis test is available only with the maximum likelihood estimations of laodings and specific variances. (For test statistic formula and degrees of freedom, please see the Chapter note).
+
+Since p-value is found to be 0.412, we conclude that four factors considered are sufficient for the fit. 
+
+Based on the variables that belong to each factor in this analysis, we can name or label each factor. For example, factor 3 can be named 'flavor' as odor and taste variables are associated with it. 
+
+In order to print the rotation matrix $T$, we extract 'rotmat' from factanal object 'seishu.fac.rot'. 
+
+```{r }
+seishu.fac.vm$rotmat
+```
+
+Recall that communality $\hat h_i^2=\sum_j^m \hat \lambda_{ij}^2$ is the part of the variance $\sigma_{ii}$ of the ith variable $y_i$ that is explained by all the factors considered in the model. To find communalities $\hat h_i^2$, we can use: 
+
+```{r }
+loads=seishu.fac.vm$loadings
+loads
+communality=apply(loads^2,1,sum) # communality
+communality
+```
+
+To find the sum of squares of the loadings associated with each factor, 
+
+```{r}
+ss.loadings=apply(loads^2,2,sum)
+ss.loadings
+```
+
+Below we find the sum of communalities and the unique variances. Note that all the results very close to 1. Why?
+
+```{r}
+communality+seishu.fac.vm$uniquenesses
+```
+
+

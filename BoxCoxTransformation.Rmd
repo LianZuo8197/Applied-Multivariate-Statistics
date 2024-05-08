@@ -1,0 +1,89 @@
+---
+title: "BoxCox Transformation"
+author: "Tanweer Shapla"
+date: "`r Sys.Date()`"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = T, comment="", warning = F, results=T, message = F)
+```
+
+The Box-Cox transformation is one of the commonly used techniques to transform non-normal data to a normal distribution by applying the power transformation. This transformation is used in statistical modeling to improve the normality of the data and to stabilize the variance. The caret package in R provides a convenient way to apply Box-Cox transformation to variables in a data set.
+
+The Box-Cox transformed is defined as 
+
+$Y=log(x)$ if $\lambda = 0$
+
+$Y=\frac{x^\lambda -1}{\lambda}$ if $\lambda \ne 0$
+
+where x is a positive random variable.
+
+## Sampling from a right-skewed distribution, checking distribution visually and with formal tests 
+
+```{r}
+library(ggplot2) 
+
+# define right-skewed data 
+set.seed(123) 
+data <- rgamma(100, shape = 6, scale = 1) 
+
+
+# plot histogram of the skewed data 
+ggplot(data.frame(data), aes(data)) + 
+  geom_histogram(binwidth = 0.7, color = "black", fill = "lightblue") + ggtitle("Histogram of Positively Skewed Data") 
+
+#checking if the above data is coming from a Gamma(6, 1) and Normal (6,6) distribution
+
+ks.test(data, "pgamma", 6, 1)
+ks.test(data, "pnorm", 6, 6)
+```
+
+The rgamma() function generates a random sample of 100 values from a gamma distribution with shape parameter 6 and scale parameter 1. This produces a positively skewed distribution. The shape parameter controls the shape of the distribution. As shape parameter increases, the distribution becomes more skewed to the right. The scale parameter controls the spread or width of the distribution. A larger scale gives a more spread out and flattened distribution (larger variance).
+
+Functions from the ggplot2 package is used to create a histogram of the data. The binwidth argument specifies the width of the bins in the histogram, while the color and fill arguments determine the color of the bars. The shape of the histogram shows evidnece of a right-skewed distribution. 
+
+We also have done a formal test, namely, the Kolmogorov-Smirnov test to see if the sample data is coming from a Gamma distribution with parameters shape $\alpha$ = 6, scale $\beta$ = 1. The test result is insignificant (p-value = 0.2036). However, as expected, the test for normality with mean $\alpha \times \beta$ =6 and variance $\alpha \times \beta^2$=6 is significant (p-value = 1.966e-06) at 5% level of significance. 
+
+## Applying Box-Cox Transformation, checking distribution visually and with formal tests 
+
+```{r}
+#install.packages("caret") #classification and regression training package
+
+bc_trans <- caret::BoxCoxTrans(data) 
+bc_trans$lambda
+transformed_data <- predict(bc_trans, data)#predict(object, data to be transformed)
+head(transformed_data)
+
+# plot histogram of transformed data 
+ggplot(data.frame(transformed_data), aes(transformed_data)) + 
+  geom_histogram(binwidth = 0.5, color = "black", fill = "lightgreen") + ggtitle("Histogram of Box-Cox Transformed Data")
+
+ks.test(transformed_data, "pnorm", mean(transformed_data), sd(transformed_data))
+```
+
+The BoxCoxTrans() function from the caret package is then used to perform a Box-Cox transformation on the data. This function automatically finds the optimal lambda value for the transformation based on maximum likelihood estimation. bc_trans$lambda gives the optimal lambda value. We then use this lambda to find the transformed values. The transformed data is stored in the transformed_data variable. Finally, a histogram of the transformed data is created using ggplot2. We also perform Kolmogorov-Smirnov test of normality which fails to reject the null hypothesis of normality with mean=sample mean and variance = sample variance at 5% level of significance (p-value = 0.9342). 
+
+
+
+## Normal transformation to iris data
+
+```{r}
+lambda=c()
+trans.data=matrix(0, nrow(iris), 4)
+for (i in 1:4){
+iris_bc=caret::BoxCoxTrans(iris[,i])
+lambda[i]=iris_bc$lambda
+trans.data[,i]=predict(iris_bc, iris[,i])#trans_data=predict(bc_trans,data) 
+}
+
+iris.trs=data.frame(trans.data, iris$Species)
+
+head(iris.trs)
+lambda
+
+library(mvnormtest)
+mshapiro.test(t(trans.data))
+```
+
+

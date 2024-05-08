@@ -1,0 +1,242 @@
+---
+title: "Stat 577: Discriminant Analysis - Iris data"
+author: "T Shapla"
+date: "11/08/2023"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = T, comment="", warning = F, results=T, message = F)
+```
+## Example: Iris data
+
+In this example, we will use iris data for predicting iris species based on the predictor variables Sepal.Length, Sepal.Width, Petal.Length, and Petal.Width, all measured in centimeter. The grouping variable in this data is "Species", which has three levels: setosa, versicolor, and virginica. Since all numeric variables have the same scale, we do not need to standardize the data. However, for presentation purpose we will standardize the data by subtracting the variable mean and dividing by the standard deviation.   
+
+
+## Checking the Assumptions
+
+First thing first. We check the following two assumptions for iris data:
+
+1. Multivariate normality of numeric variables
+
+2. Homogeneity of covariance matrices
+
+```{r}
+library(mvnormtest)
+mshapiro.test(t(iris[,1:4]))
+
+library(car)
+library(carData)
+library(heplots)
+boxM(iris[,1:4], iris[,5])
+```
+
+From the output we note that both assumptions are violated for the data at 5% level of significance (p-value<0.05). To make the data work, below are couple of approaches that we can undertake:
+
+1. Perform both tests at 1% significance level. Thus, the normality assumption is being satisfied (p-value>0.01). Since the the data shows evidence of heterogeneity of covariance matrices at 1% level of significance (p-value < 2.2e-16), we can apply quadratic discriminant analysis instead of linear discriminant analysis for the data. 
+
+2. We attempt to data transformation by taking log or applying BoxCox transformation. If both assumptions are satisfied, then we can go ahead and perform linear discriminant analysis. 
+
+For the sake of presentation, we assume that both assumptions are met and continue with developing linear discriminant functions. Later in this presentation, we will learn how to find the quadratic discriminant functions, which is more suitable for this situation. 
+
+## Splitting the data
+
+First we split the data into training set (80%) and test set (20%) by assigning observations randomly into these two groups.
+
+We have a total of 150 observations in iris data. Thus, 80% of 150 will be 120 observations, which will comprise the training set. 
+
+
+```{r }
+set.seed(123)# for reproducibility
+data("iris")
+dim(iris) #to see number of rows and columns
+class(iris)
+
+# Split the data into training set (80%) and test set (20%)
+index=sample(1:nrow(iris), floor(0.8*nrow(iris)), replace=F)
+head(index,3)
+train.data=iris[index,]
+head(train.data,3)
+test.data=iris[-index,]
+```
+
+## Standardizing the data
+
+Since all the predictor variables are measured on the same scale, data standardization is not required. However, it is recommended to standardize the variables to give them equal weight in the analysis. 
+
+Below we standardize/normalize all variables except the Species variable. 
+
+```{r }
+#install. packages("tidyverse")
+library(tidyverse) # to use select() function
+#library(dplyr)
+train.trs=data.frame(scale(select(train.data, where(is.numeric))))#scaling all numeric variables
+test.trs=data.frame(scale(select(test.data, where(is.numeric))))
+```
+
+Since fifth column “Species” was dropped from train.trs and test.trs data, we can easily add it back by using the following code:
+
+```{r }
+train.trs$Species=train.data$Species
+test.trs$Species=test.data$Species
+head(train.trs,3)
+head(test.trs,3)
+```
+
+## Moving forward with the LDA
+
+To perform linear discriminant analysis, we use lda() function from MASS package. In order to install the package, first remove the # sign from the first line in R chunk below and execute it. Once the package has been installed, comment this command line to suppress it from future execution. 
+
+In the lda() function, the first input is formula of the form group~x1+x2+...That is, the response is the grouping factor and the right hand side specifies the (non-factor) discriminators/predictors. To include all predictors in the model, we write group~. instead of typing each predictor with a plus sign between them. 
+
+The prior probabilities of class membership is specified by the option prior=c(). If unspecified, the class proportions for the training set are used. If present, the probabilities should be specified in the order of the factor levels.
+
+```{r }
+#install.packages("MASS")
+#library(MASS)
+lda.iris=MASS::lda(Species~., data=train.trs)
+#you may assign equal probability by using prior=c(1,1,1)/3
+lda.iris
+```
+Note: In the output above, we see that two linear discriminant functions are produced. In general, for linear discriminant analysis (LDA) in R, when you have $p$ predictors and $g$ groups, you can have a maximum of $min(g−1,p)$ discriminant functions.
+
+You can extract various output objects produced by lda() function just by typing $ sign to the next of lda object name. For example, to get the estimated prior probabilities and the group sample mean of each variable, type
+
+```{r }
+lda.iris$prior
+round(lda.iris$means, digits=4)
+```
+ 
+When you run LDA using the lda() function, one of the results is the "Proportion of trace," which is a measure of how well the discriminant functions separate the classes or groups in your data. In general, a higher proportion of trace suggests that the LDA model is effective in capturing the variability in the data and discriminating among the classes. Researchers often examine this value to assess the quality of the LDA model and its ability to distinguish between the groups in the data. The proportion of trace for LD1 is found to be 0.9924, which is excellent. 
+
+## Predicting observations in the test data
+
+Below we predict the membership of observations in the test data (test.trs) using the linear discriminant models based on the train data.  
+
+```{r }
+predictions=predict(lda.iris, test.trs, prior = lda.iris$prior)
+```
+
+The predict() function produces the following information for each observation in the test data:
+
+i. predicted class (in this case, Species) given by 'class' variable
+
+ii. the posterior probability of belonging in each class given by 'posterior' variable
+
+iii. The linear discriminant scores calculated based on each linear discriminant function given by 'x'
+
+We can extract these information as shown below:
+
+```{r}
+head(predictions$class, 3)
+head(predictions$posterior, 3)
+head(predictions$x,3) 
+```
+## Model Accuracy
+
+To evaluate efficiency of the linear discriminant model developed above, we find the model efficacy by calculating the proportion of correctly assigning each subject into a class/category in the test data. 
+
+```{r }
+accuracy=mean(predictions$class==test.trs$Species)
+accuracy
+```
+The model efficacy is found to be about 93%, which is reasonably a high percentage. Note that, by default, the probability cutoff used to decide group-membership is 0.5. 
+
+## Prediction of group memebership for new observations
+
+Suppose we wish to use our model for group membership of three new subjects, in this case, flowers based on the measurements on four variables. For these three new observations, the species are unknown. Note that in order to use the lda model developed above, the input variables should be given in normalized scale. 
+
+After executing the discriminant analysis, we see that the model assigned these observations to setosa, setosa, and virginica group, respectively with posterior probability of 1 or very close 1.
+
+```{r }
+Sepal.Length=c(-0.6751142, -1.4160932, 2.165305)
+Sepal.Width=c(1.5205823, -0.2243482, 1.769858)
+Petal.Length=c(-1.341845, -1.396989, 1.525659)
+Petal.Width=c(-1.382448, -1.508892, 1.146421)
+
+new.obs=data.frame(Sepal.Length, Sepal.Width, Petal.Length, Petal.Width)
+pred.new.obs=predict(lda.iris, new.obs, prior = lda.iris$prior) #predict(model.object, newdata)
+#or, pred.new.obs=predict(lda.iris, new.obs, prior = lda.iris$prior)
+pred.new.obs
+```
+
+Now, suppose we have collected 3 observations with measurements on four variables given all in centimeter unit. Therefore, we do not need to normalize the data. We predict the membership of these 3 subjects using the model based on the original un-transformed 'train.data'.
+
+```{r }
+lda.untr=MASS::lda(Species~., train.data)#lda based on un-transformed data
+
+Sepal.Length=c(5.1, 4.9, 6.7)
+Sepal.Width=c(3.5, 3, 3.3)
+Petal.Length=c(1.4,1.4,5.7)
+Petal.Width=c(0.2,0.2, 2.5)
+new.untr=data.frame(Sepal.Length, Sepal.Width, Petal.Length, Petal.Width)
+
+pred.new.untr=predict(lda.untr, new.untr)
+pred.new.untr
+```
+
+## Plotting of linear discriminants
+
+Below we plot the linear discriminants, obtained by computing LD1 and LD2 for each of the training observations.
+
+```{r}
+#install.packages("tidyverse")
+library(tidyverse)
+library(ggplot2)#to use ggplot() function
+
+lda.data=cbind(train.trs, predict(lda.iris)$x)
+
+ggplot(lda.data, mapping=aes(x=LD1, y=LD2))+geom_point(mapping=aes(color=Species))
+```
+
+Above graph shows how well the discriminant functions have placed the flower species into three different categories. 
+
+
+## Finding Confusion matrix
+
+```{r}
+#install.packages("caret")#to use for confusionMatrix()
+#caret is short for classification and regression training
+library(caret)
+confusion_matrix <- confusionMatrix(predictions$class, test.data$Species, dnn = c("Predicted Group", "Reference/original Group"))
+print(confusion_matrix)
+```
+
+## Quadratic Discriminant Analysis
+
+Below we perform the quadratic discriminant analysis for the iris data. In this case, we use qda() function from MASS package. All other coding are same as before. The model accuracy is found to be 0.9666667, which implies the quadratic discriminant function is performing better than the linear discriminant function in predicting group membership of iris flowers. This makes sense since quadratic discriminant function is more suitable and appropriate here due to heterogeneity of covariance matrices of underlying variable across three species.   
+
+
+```{r}
+qda.iris=MASS::qda(Species~., data=train.trs)
+qda.iris
+
+prediction.qda=predict(qda.iris, test.trs, prior = qda.iris$prior)
+mean(prediction.qda$class==test.trs$Species)
+```
+
+## Prediction of new observations
+
+Now, we will predict the group membership of same 3 observations described above with measurements on original scale. We will use the quadratic discriminant function based on original un-transformed 'train.data' to predict the species.
+
+
+```{r}
+qda.untrs=MASS::qda(Species~., data=train.data)
+Sepal.Length=c(5.1, 4.9, 6.7)
+Sepal.Width=c(3.5, 3, 3.3)
+Petal.Length=c(1.4,1.4,5.7)
+Petal.Width=c(0.2,0.2, 2.5)
+new.untr=data.frame(Sepal.Length, Sepal.Width, Petal.Length, Petal.Width)
+predict.new.untr.qda=predict(qda.untrs, new.untr, prior = qda.iris$prior)
+predict.new.untr.qda
+```
+
+## Finding Confusion matrix
+
+```{r}
+#install.packages("caret")#to use for confusionMatrix()
+#caret is short for classification and regression training
+library(caret)
+confusion.matrix.qda <- confusionMatrix(prediction.qda$class, test.data$Species)
+print(confusion.matrix.qda)
+```

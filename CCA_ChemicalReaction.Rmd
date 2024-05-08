@@ -1,0 +1,200 @@
+---
+title: "Canonical Correlation Analysis - Chemical Reaction Example"
+author: "Stat 577 Fall 2023"
+date: "11/15/2023"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = T, comment="", warning = F, results=T, message = F)
+```
+
+## Example : Chemical Reaction 
+
+The results of a planned experiment involving a chemical 
+reaction are given. The input variables are 
+$x_1$= temperature, $x_2$= concentration, $x_3$= time. 
+The yield variables are $y_1$= percentage of unchanged starting material, $y_2$= percentage converted to the desired product, $y_3$= percentage of unwanted by-product. This data is saved in the Canvas site as 'ChemicalReaction'. 
+
+In this problem, we wish to perform the followings:
+
+1. find the canonical correlation values;
+
+2. write down the canonical variate pairs, and interpret one or two canonical coefficients;
+
+3. find the squared canonical correlation values, and interpret them in context;
+
+4. find number of canonical variate pairs we would consider in this study based on the squared canonical correlation values;
+
+5. report each F test statistic value based on Wilk's lambda, its corresponding p value, and conclusion for testing hypothesis regarding canonical correlations. 
+
+## Solution
+
+## Importing and Reading the data
+
+```{r }
+setwd("D:/LianZuo/Applied Statistics Course Materials/STAT 577 - Applied Multivariate Statistics/data-577")
+CR=read.table("ChemicalReaction.dat", header=F)
+colnames(CR)=c("Obs", "start.mat", "conver.mat", "byproduct", "temp", "concentr", "time")
+print(head(CR,3), row.names = F)#row.names=F suppresses printing of labels or identifies for each row
+dim(CR)
+```
+
+
+Below we create the X-set and Y-set of variables. X set will have the input variables ("temp", "concentr", "time"), and Y set will have output variables ("start.mat", "conver.mat", "byproduct"):
+
+```{r }
+ydata=CR[,2:4]
+xdata=CR[,5:7]
+```
+
+In order to find the canonical correlations, squared canonical correlations, canonical coefficients for canonical variates, we use cc() function from CCA package. 
+
+```{r }
+#install.packages("CCA")
+library(CCA)
+cca.cr=cc(xdata, ydata)
+cca.cr
+(rho.cr=cca.cr$cor)#to get canonical correlation values
+(squared.rho.cr=cca.cr$cor^2)#to get squared canonical correlation values
+(x.coef=cca.cr$xcoef)#to get coefficients for canonical variate for x vars
+(y.coef=cca.cr$ycoef)#to get coefficients for canonical variate for y vars
+```
+
+Alternately, you can find the canonical correlation $\rho _1^*$ between the first canonical variate pair by calculating the correlation between x scores and y scores of first canonical variate pair:
+
+```{r}
+cor(cca.cr$scores$xscores[,1], cca.cr$scores$yscores[,1])
+```
+
+To check if the correlation between $(U_1,V_2)$, $(U_2,V_1)$, etc. are zero or not, we write
+
+```{r}
+cor(cca.cr$scores$xscores[,1],cca.cr$scores$yscores[,2])
+cor(cca.cr$scores$xscores[,2],cca.cr$scores$yscores[,1])
+```
+
+To check if $Var(U_1)=Var(V_1)=1$, we write
+
+```{r}
+var(cca.cr$scores$xscores[,1])
+var(cca.cr$scores$yscores[,1])
+```
+## Answer to question 1 
+
+The canonical correlation values are found to be 
+
+$\hat \rho_1^*=0.98152665$,  $\hat \rho_2^*=0.30199414$, and $\hat \rho_3^*=0.05733448$.
+
+## Answer to question 2
+
+The canonical covariate pairs are $(U_1, V_1)$, $(U_2, V_2)$ and $(U_3, V_3)$, where 
+
+$U_1=\bm{-0.1606168}*temp-0.1486092*cncentr-0.2156820*time$
+
+$U_2=-0.0694400*temp-0.1215865*cncentr+0.5839192*time$
+
+$U_3=-0.04909375*temp+0.19117914*cncentr+0.03768838*time$
+
+
+$V_1=0.17079417*start.mat+0.0690974*conver.mat+0.08582542*byproduct$
+
+$V_2=0.6259417*start.mat+0.7299873*conver.mat+0.7127437*byproduct$
+
+$V_3=0.3773218*start.mat+0.2172993*conver.mat+\bm{0.5389956} *byproduct$
+
+
+
+The interpretation of the canonical coefficients follows in a way that is similar to the interpretation of the coefficients of the linear regression models. For instance, consider the input variables. Suppose that we wanted an interpretation of the influence of temperature on the first canonical variate, the interpretation would be as follows:
+
+A one unit increase in temperature would result in a decrease of $\bm {0.1606}$ units in the value of the first canonical variate for the input variables, when the other variables are held constant.
+
+Similarly for output variables, a one unit increase in byproduct would result in an increase of $\bm {0.5389}$ units in the value of the third canonical variate for the output variables, when the other variables are held constant.
+
+
+
+## Answer to question #3
+
+The squared canonical correlation values are found to be
+
+$\hat \rho_1^{*2}=0.963394567$,  
+
+$\hat \rho_2^{*2}=0.091200458$, and 
+
+$\hat \rho_3^{*2}=0.003287242$.
+
+We see that 96.3% of the variation in $V_1$ is explained by $U_1$ and vice versa. Only 9.12% of the variation in $V_2$ is explained by $U_2$ and vice versa, and only 0.328% of the variation in $V_3$ is explained by $U_3$ and vice versa. 
+
+
+## Answer to question 4
+
+Since the first squared canonical correlation value is very high (which is 0.963394567), this implies that only the first pair of canonical variate is sufficient to explain the variation in the X and Y sets and important in the study. 
+
+
+## Answer to question 5
+
+To answer Question #5, we test hypotheses regarding significance of each canonical correlation using p.asym() function from CCP package.
+
+This function runs asymptotic tests to assign the statistical significance of canonical correlation coefficients. F-approximations of Wilks' Lambda, the Hotelling-Lawley Trace, the Pillai-Bartlett Trace, or of Roy's Largest Root can be used as a test statistic.
+
+The p.asym(() has the following arguments:
+
+rho, N, p, q, tstat = ""
+
+rho: vector containing the canonical correlation coefficients,
+
+N: number of observations for each variable,
+
+p: number of independent variable,
+
+q: number of dependent variable,
+
+tstat: test statistic to be used. One of "Wilks" (default), "Hotelling", "Pillai", or "Roy".
+
+
+```{r }
+#install.packages("CCP")
+library(CCP)
+
+n1=nrow(CR)
+p1=ncol(xdata)
+q1=ncol(ydata)
+p.asym(rho.cr,n1,p1,q1,tstat="Wilks")
+p.asym(rho.cr,n1,p1,q1,tstat="Hotelling")
+p.asym(rho.cr,n1,p1,q1,tstat="Pillai")
+p.asym(rho.cr,n1,p1,q1,tstat="Roy")
+```
+
+
+Here we are testing three hypotheses, namely
+
+$H_01:\rho_1^*=\rho_2^*=\rho_3^*=0$
+
+$H_02:\rho_2^*=\rho_3^*=0$
+
+$H_03:\rho_3^*=0$
+
+We have summarized the hypotheses results based on Wilk's lambda statistic in the table below:
+
+$\begin{bmatrix} 
+Hypothesis & Wilk's \lambda  & F.stat  & p-value \\ 
+H_{01} & 0.03315764 & 10.78695611 & <0.0001 \\
+H_{02} & 0.90581210 & 0.35493742 & 0.8384 \\
+H_{03} & 0.99671276 & 0.04947126 & 0.8270 \\ 
+\end{bmatrix}$
+
+Based on the p-value associated with the test $H_01:\rho_1^*=\rho_2^*=\rho_3^*=0$, we reject the null hypothesis at $\alpha=0.05$ and since the canonical correlations are ordered from largest to smallest, we concluded that at least $\rho_1^*\neq0$. Therefore, first canonical variate pair is correlated. 
+
+To test whether the second or third canonical variate pairs are correlated, we perform $H_02:\rho_2^*=\rho_3^*=0$. We found a p-value of 0.8384. From this test we can conclude that the second and third canonical variate pairs are uncorrelated, $\rho_2^*=\rho_3^*=0$, we would stop here.
+
+
+## Notes:
+
+1. The number of canonical correlation and canonical variate pair is the same as the count of variables in the smaller set.
+
+2. Usage of asymptotic approximations regarding the tests for canonical correlation values requires multivariate normality of the variables, or a large number of observations. 
+
+3. The hypothesis testing results regarding canonical correlation values may vary slightly depending on the test statistic implemented.
+
+
+

@@ -1,0 +1,52 @@
+---
+title: "Testing of Homogeneity Of Covariance Matrix"
+author: "Tanweer Shapla"
+date: "`r Sys.Date()`"
+output: word_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = T, results=T, message = F, warning = F, fig.show = "nohide", comment="")
+```
+
+In checking homogeneity of covariance matrices for $K$ populations, the null and alternative hypotheses are respectively, 
+
+
+$H_0: \Sigma_1=\Sigma_2=....=\Sigma_K$
+
+vs $H_a$: at least one equality does not hold.
+
+
+## Example 1
+
+In this example, we work on Psychological test data. We use boxM() function from heplots package, which depends on car and carData packages. 
+
+```{r}
+setwd("D:/LianZuo/Applied Statistics Course Materials/STAT 577 - Applied Multivariate Statistics/data-577")
+PT=read.table("Psychological tests.DAT", header=F)
+colnames(PT)=c("gender", "t1","t2", "t3", "t4")
+gender=as.factor(PT$gender)
+
+#install.packages("heplots")
+library(car)
+library(carData)
+library(heplots)
+boxM(PT[, 2:5],PT[, 1])
+#or, boxM(PT[, c("t1","t2", "t3", "t4")], PT[, "gender"])
+```
+The test statistic value is found to be 13.551 with a p-value of 0.1945. Therefore, we fail to reject the null hypothesis and conclude that the population covariance matrices are not significnatly different. 
+
+
+## Example 2
+
+We work on iris data to check the homogeneity of covariance matrices.
+
+```{r}
+names(iris)
+
+result <- boxM(iris[, 1:4], iris[, "Species"])
+result
+```
+
+

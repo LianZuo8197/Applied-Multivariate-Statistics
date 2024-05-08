@@ -1,0 +1,82 @@
+---
+title: "Paired Test for MV data"
+author: "Tanweer Shapla"
+date: "`r Sys.Date()`"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = T, results=T, message = F, warning = F, fig.show = "nohide", comment="")
+```
+
+## Multivariate Paired Hotelling's T2 Test 
+
+Paired Samples occur in a number of different situations. For example:
+
+1. Pairs of similar individuals are selected from a population. These are selected in such a way that the two members of each pair are more similar to one another than they are to different observations in the dataset. Under this setting, one treatment may be applied to each individual in a pair and measurements are taken. 
+
+2. For a single sample of individuals, measurements may be taken both before and after treatment. For example, the mineral content of six bones is measured before and after one year of diet and exercise treatments.
+
+## Example 1 : Spouse data
+
+
+A sample of husband and wife pairs are asked to respond to each of the following questions:
+
+1. What is the level of passionate love you feel for your partner?
+
+2. What is the level of passionate love your partner feels for you?
+
+3. What is the level of companionate love you feel for your partner?
+
+
+A total of 30 married couples were questioned. Responses were recorded on a five-point scale. Responses included the following values:
+
+1. None at all
+
+2. Very little
+
+3. Some
+
+4. A great deal
+
+5. Tremendous amount
+
+We wish to know if husbands respond to the questions in the same way as their wives. Thus, the null hypothesis is 
+
+$H_0:\bm \mu_1-\bm \mu_2=\bm 0$ vs $H_a:\bm \mu_1 \ne \bm \mu_2$
+
+or, $H_0:\bm \delta =\bm 0$ vs $H_a:\bm \delta \ne \bm 0$
+
+Below we calculate the multivariate paired Hotelling's $T^2$ test statistic:
+
+$T^2=n*\bm \bar D * \bm S_D^{-1}*\bm \bar D$
+
+where $\bm \bar D$ is the matrix of differences $h1-w1,h2-w2, h3-w3$, and $\bm S_D$ is the covariance matrix. 
+
+```{r}
+library(ICSNP) #needed to use HotellingsT2()
+#ICSNP depends on mvtnorm and ICS packages
+library(mvtnorm)
+library(ICS)
+
+setwd("D:/LianZuo/Applied Statistics Course Materials/STAT 577 - Applied Multivariate Statistics/data-577")
+sp=read.csv("spouse.csv")
+head(sp)
+
+d=with(sp, cbind(h1-w1,h2-w2, h3-w3))
+
+n=nrow(d)
+p=ncol(d)
+
+HotellingsT2(d, mu=c(0,0,0), test="f")
+
+```
+
+Based on the results, we conclude that the response of husbands do not differ from the response of their wives to the questions at 5% level of significance. (T2 = 2.3547; d.f. = 3, 27; p-value = 0.09422).
+
+Therefore, husbands respond in the same way as their wives. 
+
+
+
+
+

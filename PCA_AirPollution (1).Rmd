@@ -1,0 +1,212 @@
+---
+title: "Principal Component Analysis: Air pollution data"
+author: "T Shapla"
+date: "10/30/2023"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = T, comment="", warning = F, results=T, message = F)
+```
+## Principal Component Analysis (PCA)
+
+## Example Air Pollution data 
+
+Below we consider ‘Air Pollution’ example. The accompanying data is provided in Table 1.5, page 39 of the textbook (Johnson), and in AirPollution data in Canvas Data module. 
+
+
+In the Air Pollution data, there are 42 measurements on 7 air-pollution variables recorded at 12:00 pm in the Los Angeles area on different days. The variables are given below. For the sake of simplicity, we assume that all the variables have same unit of measurement. 
+
+1.	Wind
+
+2.	Solar radiation
+
+3.	CO (Carbon monoxide)
+
+4.	NO (Nitrogen oxide)
+
+5.	NO2 (Nitrogen dioxide)
+
+6.	O3 (Ozone)
+
+7.	HC (Hydrogen carbide)
+
+
+
+Read the data in R, assign variable names, and answer the following questions:
+
+a. To perform a PCA for the above data, should you use a sample covariance matrix or correlation matrix and Why? Using the appropriate matrix, compute and write down the first and second principal components, $\hat Y_1$ and $\hat Y_2$. 
+
+b. Draw a screeplot and provide your graph below. Based on the graph, decide how many principal components you will consider in your study. 
+
+c. How many components should you consider to account for at least 85% of the total variation in all the variables?
+
+d. Based on using the average of eigenvalues as a cutoff, how many principal components you will consider in your study? 
+
+
+e. Find the sample variance of each variable and explain how the relatively larger variances affect the principal component loadings. 
+
+## Solution 
+
+Reasding the data
+
+```{r }
+setwd("C:/Users/tshapla/Desktop/COURSES/Stat 577/RPrograms")
+airpollution=read.table("AirPollution.dat", header=F)
+colnames(airpollution)=c("WIND", "SR","CO", "NO","NO2","O3","HC")
+head(airpollution,3)
+```
+
+First let us find the mean and sample standard deviation of each variable.
+
+```{r }
+mean=apply(airpollution, 2, mean)
+print(mean)
+#Or, colMeans(airpollution)
+variance=apply(airpollution, 2, var)
+variance
+```
+Finding eigenvalues of the sample covariance matrix, and the total variance:
+
+```{r}
+s.cov=cov(airpollution)
+lambdas=round(eigen(s.cov)$values, digits=3)
+print(lambdas)
+sum(lambdas)
+sum(diag(s.cov))
+```
+Now we perform the PCA for air pollution data, and print the loadings:
+
+```{r echo=T, comment=""}
+pc.air<-princomp(airpollution, cor=F)# cor=F to use sample covariance matrix
+output=summary(pc.air)
+output
+output$loadings
+```
+In loadings, omitted values are not zero but are close to zero in value and should be ignored. It is to be noted that Wind is the only variable that is associated positively with all the principal components. 
+
+If we wish to round the loadings to a certain digits for a certain number of principal components,let's say, for 3 PCs, then 
+
+```{r echo=T, comment=""}
+round(pc.air$loadings[,1:3], digits=3)
+#or, round(result$loadings[,1:3], digits=3)
+```
+
+We note that variables SR, O3 and NO2 with top 3 variances (300.5156794,30.9785134, 11.3635308) appear significant in first three principal components. And each of these principal components are negatively related with SR, O3 and NO2 variables, respectively. PC1 is mainly the measure of SR, PC2 is mainly the measure of O3 and PC3 is determined by NO2. 
+
+To draw the scree plot, 
+```{r echo=T, comment=""}
+screeplot(pc.air, col = "black", pch = 16, type = "lines", cex = 2, 
+          lwd = 2,  main = "Screeplot for Air pollution data-Unstandardized variable")
+```
+
+Answer to question (d) above:
+
+```{r}
+avg.lambda=mean(lambdas)
+avg.lambda
+id=which(lambdas>avg.lambda)
+lambdas[id]
+```
+According to the average value as a cutoff guideline, we can retain only first principal component. 
+
+
+## Alternative: Standardize the Variables
+
+In the previous example, we looked at a principal components analysis applied to the raw data. In our earlier discussion, we noted that if the raw data is used, then a principal component analysis will tend to give more emphasis to those variables that have higher variances than to those variables that have lower variances. In effect, the results of the analysis will depend on the units of measurement used to measure each variable. That would imply that a principal component analysis should only be used with the raw data if all variables have the same units of measure. 
+
+If the variables have different units of measurement, (i.e., pounds, feet, gallons, etc.), or if we wish each variable to receive equal weight in the analysis, then the variables should be standardized before conducting a principal components analysis.  To standardize a variable, subtract it's mean and divide by it's standard deviation.
+
+Note: The variance-covariance matrix of the standardized data is equal to the correlation matrix for the unstandardized data. Therefore, principal component analysis using standardized data is equivalent to principal component analysis using the correlation matrix.
+
+The principal components are first calculated by obtaining the eigenvalues for the correlation matrix:
+
+$\hat \lambda_1$, $\hat \lambda_2$, ....,$\hat \lambda_p$
+
+In this matrix, we denote the eigenvalues of the sample correlation matrix R and the corresponding eigenvectors
+
+$\hat e_1$, $\hat e_2$, ....,$\hat e_p$
+
+The estimated principal components scores are calculated using formulas similar to before, but instead of using the raw data we use the standardized data:
+
+$\hat Y_1$=$\hat e_{11} Z_1$+$\hat e_{12} Z_2$+...+$\hat e_{1p} Z_p$
+
+$\hat Y_2$=$\hat e_{21} Z_1$+$\hat e_{22} Z_2$+...+$\hat e_{2p} Z_p$
+
+..........................
+
+$\hat Y_p$=$\hat e_{p1} Z_1$+$\hat e_{p2} Z_2$+...+$\hat e_{pp} Z_p$
+
+The rest of the procedure and the interpretations follow as discussed before.
+
+
+
+## Analysis
+
+First we standardized the data using the scale() function and then find the mean and variance. Note the mean and variance values of respectively zero and one, as expected.
+
+```{r}
+mean.air.st=apply(scale(airpollution), 2, mean)
+var.air.st=apply(scale(airpollution), 2, var)
+mean.air.st
+var.air.st
+```
+
+We need to focus on the eigenvalues of the correlation matrix that correspond to each of the principal components. In this case, the total variation of the standardized variables is equal to p, the number of variables. After standardization, each variable has a variance equal to one, and the total variation is the sum of these variations, in this case, the total variation will be 7, which is equal to the number of variables in the air pollution data. Below we see that the sum of all the eignevalues is equal to 7, which is the total variation in the data. 
+
+```{r}
+s.cor=cor(airpollution)
+lambda=eigen(s.cor)$values
+lambda
+sum.lambda=sum(eigen(s.cor)$values)
+sum.lambda
+```
+
+
+Now, we perform the principal component analysis on the air pollution data using the sample correlation matrix specifying by the option cor=T in the princomp() function:
+
+```{r echo=T, comment=""}
+pc.air.cor<-princomp(airpollution, cor=T)
+summary(pc.air.cor)
+```
+The proportion of variation explained by each of the principal components as well as the cumulative proportion of the variation explained are provided in the second and third row of the output.
+
+The first principal component explains about 33% of the variation. Furthermore, the first four principal components explain 80%, while the first five principal components explain 90% of the variation. Compare these proportions with those obtained using non-standardized variables. This analysis is going to require a larger number of components to explain the same amount of variation as the original analysis using the variance-covariance matrix. This is not unusual.
+
+In most cases, the required cut-off is pre-specified; i.e. how much of the variation to be explained is pre-determined. For instance, I might state that I would be satisfied if I could explain 70% of the variation. If we do this, then we would select the components necessary until you get up to 70% of the variation. This would be one approach. This type of judgment is arbitrary and hard to make if you are not experienced with these types of analysis. The goal - to some extent - also depends on the type of problem at hand.
+
+Another approach would be to plot the differences between the ordered values and look for a break or a sharp drop. The only sharp drop that is noticeable in this case is after the first component. One might based on this, select only one component. However, one component is probably too few, particularly because we have only explained 37% of the variation. Consider the scree plot based on the standardized variables.
+
+```{r}
+screeplot(pc.air.cor, main="Screeplot for Air pullution data -Standardized variable", cex=1.5, type="l", lwd=1.2, pch=16, col="steelblue")
+```
+
+Next, we can compute the principal component loadings. 
+
+```{r}
+pc.air.cor$loadings
+```
+This is a formula for the first principal component:
+
+$\hat Y_1=0.237(WIND)-0.206(SR)-0.551(CO)-0.378 (NO)-0.498(NO2)-0.325(O3)-0.319(HC).$
+
+And remember, this is now a function of the standardized data, not of the raw data.
+
+The magnitudes of the coefficients give the contributions of each variable to that component. Because the data have been standardized, they do not depend on the variances of the corresponding variables.
+
+One of the problems with this analysis is that the analysis is not as 'clean' as one would like with all of the numbers involved. For example, a variable may have significant contribution to more than one principal component, which makes will lead to an ambiguous interpretation in our analysis.
+
+The purpose of PCA: 
+
+Sometimes in regression settings, you might have a very large number of potential explanatory variables and you may not have much of an idea as to which ones you might think are important. You might perform a principal components analysis first and then perform a regression predicting the variables from the principal components themselves. The nice thing about this analysis is that the regression coefficients will be independent of one another because the components are independent of one another. In this case, you actually say how much of the variation in the variable of interest is explained by each of the individual components. This is something that you can not normally do in multiple regression.
+
+Let us find the pairwise correlation between each variable and each principal component.
+
+```{r}
+Scores.air=pc.air.cor$scores
+Scores.air=data.frame(Scores.air)
+correlations=round(cor(Scores.air, airpollution), digits=3)
+correlations
+
+```
+

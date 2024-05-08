@@ -1,0 +1,166 @@
+---
+title: "Checking Multivariate Normality"
+author: "T Shapla"
+date: "09/27/2023"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Checking MV normality using Chisquared QQ plot (also known as Gamma plot) for Mahalanobis distance statistic
+
+## Example 1 : trees data
+
+We use trees data from R. First we find the variable names, dimension, mean of each variable, and covariance matrix for variables in trees data. 
+
+```{r echo=TRUE, comment=""}
+names(trees)
+dim(trees)
+smean=colMeans(trees) 
+scov=cov(trees)
+print(list(smean, scov))
+```
+The Mahalanobis distance for each multivariate observation is calculated as 
+
+$D_i^2=(\mathbf {X_i}-\mathbf \bar X)'\mathbf S^{-1}(\mathbf X_i-\mathbf \bar X)$
+
+for $i=1,2,...,n$, where $\mathbf X_{i}$ is the observation vector, $\mathbf {\bar X}$ is the sample mean vector, and $\mathbf S$ is the sample covariance matrix. 
+
+For large n, $D_i^2$ approximately follows a chi-squared distribution with $p$ degrees of freedom, $p$ is the number of variables in the data. 
+
+
+
+We find Mahalanobis distance for each observation using mahalanobis{stats} function in R. Note that mahalanobis() function has the following arguments: data matrix, mean vector, and covariance matrix. We plot ordered Mahalanobis distances against the quantiles from a chi-squared distribution with p degrees of freedom. Scattering of points around a straight line suggests multivariate normality. 
+
+
+
+```{r comment=""}
+n=nrow(trees)
+mhd.trees=mahalanobis(trees, smean, scov)
+mhd.trees
+theo.quan=qchisq(ppoints(n),3) #df=number of variables = 3
+qqplot(theo.quan, mhd.trees, xlab="Theoretical quantiles",        ylab="Mahalanobis distances", pch=16, col=3, main="QQ plot for trees data")
+abline(0,1) #drawing reference line
+```
+
+The ppoints argument (stands for probability points) in qchisq() function is used to generate n probability values based on which the chi-squared quantile values can be evaluated. ppoints() generate a vector of length of n of values between 0 and 1 which is calculated using formula (rank-0.5)/n where rank is the order of each observation. 
+
+The QQ plot plots the chi-squared quantiles along x axis and the ordered Mahalanobis distances along y-axis. The QQ plot for trees data shows reasonably a linear fit (except one or two points). Since linearity is subjective particularly with graphics, let us check the normality of the data using a formal test.
+
+# Checking multivariate normality using Multivariate Shapiro test
+
+Below we perform Multivariate Shapiro test using mshapiro.test() function from "mvnormtest" package. Note that data needs to be transposed in order to use in mshapiro.test() function. 
+
+```{r echo=T, comment=""}
+#install.packages("mvnormtest")
+library(mvnormtest)
+mshapiro.test(t(trees))
+```
+The multivariate Shapiro-Wilk p-value is significant. Therefore, we reject the null hypothesis and conclude that the data is not coming from a p-variate normal distribution. Next, we may want to use univariate analysis to see which variables fail to be normally distributed. 
+
+## Checking univariate normality: Graphical tool:Drawing histograms
+
+We draw histogram for each variable and superimpose a normal curve with parameters estimated as $\hat \mu=\bar x$, and $\hat \sigma=s$.
+
+
+
+```{r echo=T, comment=""}
+attach(trees)
+par(mfrow=c(2,2)) #arrange multiple plots in the same plotting space
+
+hist(Girth, prob = T, col=8) #drawing a relative freq. histogram
+x=seq(1, 30, by=.5)
+lines(x, dnorm(x,mean(Girth), sd(Girth)), col="darkblue",lwd=0.8)
+
+
+hist(Height, prob = T, col=11)
+x=seq(55, 95, 0.5)
+lines(x, dnorm(x, mean(Height), sd(Height)), col="steelblue")
+
+
+hist(Volume, prob = T, col=12)
+x=seq(5, 85, 0.5)
+lines(x, dnorm(x, mean(Volume), sd(Volume)), col="gold")
+```
+
+From the histograms, we see that the distribution of Girth and Height variables seem to fit reasonably well a normal curve, however, the distribution of the Volume variable appears to depart from normality and shows a right skewed distribution. 
+
+Below we apply Shapiro-Wilk test for checking normality of Girth, Height and Volume variables. What is our observation based on the p-value? 
+
+## Formal test for checking normality: Shapiro-Wilk test 
+
+```{r echo=T, comment=""}
+shapiro.test(Girth)
+shapiro.test(Height)
+shapiro.test(Volume)
+
+detach(trees)
+```
+
+## Example 2: Checking Multivariate Normality for Iris data
+
+## Drawing chi-squared QQ plot
+
+```{r comment=""}
+attach(iris)
+head(iris)
+
+new.iris=iris[, 1:4]
+
+s.mean=colMeans(new.iris)
+s.cov=cov(new.iris)
+
+
+n=nrow(iris)
+mhd.iris=mahalanobis(new.iris, s.mean, s.cov)
+
+theo.quan=qchisq(ppoints(n),3) #df=number of variables = 4
+qqplot(theo.quan, mhd.iris, xlab="Theoretical quantiles",        ylab="Mahalanobis distances", pch=16, col=3, main="QQ plot for iris data")
+abline(0,1) #drawing reference line
+```
+
+## Checking Multivariate normality using Shapiro-Wilk test
+
+
+```{r comment=""}
+library(mvnormtest)
+mshapiro.test(t(iris[,1:4]))
+```
+
+
+## Checking Univariate normality with histograms
+
+```{r}
+par(mfrow=c(2,2))
+hist(Sepal.Length, prob = T, col=8, ylim=c(0,0.5)) #drawing a relative freq. histogram
+x=seq(2, 8, by=.05)
+lines(x, dnorm(x,mean(Sepal.Length), sd(Sepal.Length)), col="blue",lwd=0.8)
+
+hist(Sepal.Width, prob = T, col=8, ylim=c(0,0.9)) #drawing a relative freq. histogram
+x=seq(1, 5, by=.05)
+lines(x, dnorm(x,mean(Sepal.Width), sd(Sepal.Width)), col="green",lwd=0.8)
+
+hist(Petal.Length, prob = T, col=8, ylim=c(0,0.9)) #drawing a relative freq. histogram
+x=seq(0, 8, by=.05)
+lines(x, dnorm(x,mean(Petal.Length), sd(Petal.Length)), col="darkblue",lwd=0.8)
+
+
+hist(Petal.Width, prob = T, col=8, ylim=c(0,0.9)) #drawing a relative freq. histogram
+x=seq(0, 3, by=.05)
+lines(x, dnorm(x,mean(Petal.Width), sd(Petal.Width)), col="red",lwd=0.8)
+```
+
+## Checking univariate normality using Shapiro-Wilk test
+
+```{r comment=""}
+shapiro.test(Sepal.Length)
+shapiro.test(Sepal.Width)
+shapiro.test(Petal.Length)
+shapiro.test(Petal.Width)
+
+detach(iris)
+```
+
+

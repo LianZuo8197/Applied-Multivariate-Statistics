@@ -1,0 +1,87 @@
+---
+title: "Detecting Outliers"
+author: "Tanweer Shapla"
+date: "`r Sys.Date()`"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Detecting Multivariate outliers using Mahalanobis distance statistic
+
+## Example 1 : trees data
+
+We use trees data from R. First we find the variable names, dimension, mean of each variable, and covariance matrix for variables in trees data. 
+
+```{r echo=TRUE, comment=""}
+names(trees)
+dim(trees)
+smean=colMeans(trees) 
+scov=cov(trees)
+print(list(smean, scov))
+```
+The Mahalanobis distance for each multivariate observation is calculated as 
+
+$D_i^2=(\mathbf {X_i}-\mathbf \bar X)'\mathbf S^{-1}(\mathbf X_i-\mathbf \bar X)$
+
+for $i=1,2,...,n$, where $\mathbf X_{i}$ is the observation vector, $\mathbf {\bar X}$ is the sample mean vector, and $\mathbf S$ is the sample covariance matrix. 
+
+For large n, $D_i^2$ approximately follows a chi-squared distribution with $p$ degrees of freedom, $p$ is the number of variables in the data. 
+
+
+We find Mahalanobis distance for each observation using mahalanobis{stats} function in R. Note that mahalanobis() function has the following arguments: data matrix, mean vector, and covariance matrix. We compare each Mahalanobis distance against the critical value obtained from Table A.6 (Methods of Multivariate Analysis by Rencher, page 557). For $p=3$ and $\alpha=0.05$, the critical value is found to be $12.24$ for $n=30$. Any observation whose Mahalanobis distance is greater than the critical value is considered an outlier. 
+
+ 
+
+```{r comment=""}
+n=nrow(trees)
+mhd.trees=mahalanobis(trees, smean, scov)
+index=which(mhd.trees>12.24)#gives the observation number for which the mahalanobis distance is greater than 12.24
+index
+mhd.trees[index]
+
+```
+From the output, we find that there is no outlier in the trees data. 
+
+If we use the upper 5th percentile chi-squared critical value $\chi^2_{0.05, 3}=7.814728$ with p=3 degrees of freedom, then we find that the 31st observation with a $D^2$ value of 10.96274 appears to be an outlier. This is the point at the far right side of the qqplot. 
+
+```{r comment=""}
+chisq.c=qchisq(0.95, 3, lower.tail=T)
+out=which(mhd.trees>chisq.c)
+out
+mhd.trees[out]
+
+theo.quan=qchisq(ppoints(n),3) #df=number of variables = 3
+qqplot(theo.quan, mhd.trees, xlab="Theoretical quantiles", ylab="Mahalanobis distances", pch=16, col=3, main="QQ plot for trees data")
+abline(0,1) #drawing reference line
+
+```
+
+
+## Example 2: iris data
+
+We compare each Mahalanobis distance against the critical value obtained from Table A.6 (Methods of Multivariate Analysis by Rencher, page 557). For $p=4 and $\alpha=0.05$, the critical value is found to be $19.51$ for $n=30$. There appears to be no outlier in the iris data. 
+
+```{r comment=""}
+
+dim(iris)
+mean.iris=colMeans(iris[, 1:4])
+cov.iris=cov(iris[,1:4])
+mhd.iris=mahalanobis(iris[,1:4],mean.iris, cov.iris)
+which(mhd.iris>19.51)
+```
+
+If we use an upper 2.5th percentile chi-squared critical value $\chi^2_{0.025, 4}=11.14329$, we find observations 42, 115, 118, 132, 135, and 142 appeared to be outliers. 
+
+A more extreme percentile can be used to detect observations that seriously depart from the overall pattern of the datapoints. 
+
+
+```{r comment=""}
+which(mhd.iris>qchisq(0.975, 4, lower.tail = T))
+
+t.q=qchisq(ppoints(nrow(iris)), 4)
+qqplot(t.q, mhd.iris, xlab="Theoretical quantiles", ylab="Mahalanobis distance", main="QQ plot for iris data", ylim=c(0, 14))
+```
+

@@ -1,0 +1,156 @@
+---
+title: "Principal Component Analysis"
+author: "T Shapla"
+date: "10/25/2023"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = T, comment="", warning = F, results=T, message = F)
+```
+## Principal Component Analysis (PCA)
+
+## Example: Places Rated Data
+
+In the Places Rated Almanac, Boyer and Savageau rated 329 communities according to the following nine criteria:
+
+1.	Climate and Terrain
+
+2.	Housing
+
+3.	Health Care and Environment
+
+4.	Crime
+
+5.	Transportation
+
+6.	Education
+
+7.	Arts
+
+8.	Recreation
+
+9.	Economics
+
+There are 329 observations representing the 329 communities in the dataset and 9 variables. First we draw histograms for each variable to display the data distribution.  
+
+```{r}
+setwd("D:/LianZuo/Applied Statistics Course Materials/STAT 577 - Applied Multivariate Statistics/data-577")
+places=read.csv("places.csv", header=T)
+head(places, 3)
+names(places)
+
+#Drawing histograms
+par(mfrow=c(3,3))
+hst=function(x){
+  y=places[,x]
+  hist(y, main=paste("Histogram of ", x), xlab="")
+}
+invisible(sapply(names(places[1:9]), hst))
+```
+
+The data for many of the variables appear to be strongly skewed to the right. So, we take the log transformation of all the variables (except the last one which is the id variable) to normalize the data. However, note that normality is not required to find the principal components. 
+
+Note: We take logarithmic transformation on variables whose domain is the set of positive real numbers. For a right skewed distribution, the log transformation compresses larger values more than smaller ones. This helps reducing the skewness of the data and making it more symmetric.   
+
+
+```{r}
+places.trs=matrix(0, 329, 9) #creating a matrix of zeros
+
+for (i in 1:9){
+  places.trs[,i]=log10(places[,i])
+    }
+colnames(places.trs)=c("climate", "housing", "health","crime","trans", "educate", "arts", "recreate", "econ")
+places.trs=data.frame(places.trs)
+head(places.trs, 3)
+```
+
+Below we find the eigenvalues of the covariance matrix, and the sum of the eigenvalues which is equal to the trace of sample covariance matrix, and is called the "total variance" of underlying variables. 
+
+
+```{r}
+s.cov=cov(places.trs)#finding covariance matrix
+lambdas=round(eigen(s.cov)$values, digits=4)#eigenvalues of cov matrix
+lambdas
+
+sum(lambdas)#sum of eigenvalues
+sum(diag(s.cov))#trace of sample of sample covariance matrix
+```
+
+Now we perform the PCA for Places Rated data using princomp() function from basic "stats" package. Since all the variables are measure in score, we use sample covariance matrix instead of correlation matrix to find the loadings for principal components. The option cor=F is used in princomp() function to specify the use of sample covariance matrix. Note that a sample correlation matrix $R$ is used for principal component analysis when the variables are measured in different scales or units. 
+
+```{r}
+pc.places<-princomp(places.trs, cor=F)#using sample covariance matrix
+result.places=summary(pc.places)
+result.places
+```
+The proportion of variation explained by each eigenvalue is given in the second row labeled by "Proportion of Variance". For example, 
+$\hat \lambda_1$ = 0.3775 divided by $\sum \hat \lambda_i$ = 0.5223 equals 0.7227, or, about 72% of the variation in the data is explained by this first principal component. The cumulative proportion is obtained by adding the successive proportions of variation to obtain the running total. For instance, 0.7227 plus 0.0977 equals 0.8204, and so forth. Therefore, about 82% of the variation is explained by the first two principal components together. 
+
+The first row labeled by "Standard deviation" provides the standard deviation of each principal component, which is equal to the square root of the eigenvalues of the covariance matrix. 
+
+$Var(Y_i)=\hat \lambda_i$, $SD(Y_i)=\sqrt \hat \lambda_i$
+
+Next, we need to look at successive differences between the eigenvalues.
+
+For the Places Rated example, we find $\hat \lambda$ as follows ordered from largest to smallest: 
+
+0.3775, 0.0511, 0.0279, 0.0230, 0.0168, 0.0120, 0.0085, 0.0039, 0.0018
+
+Subtracting the second eigenvalue 0.0511 from the first eigenvalue, 0.3775 we get a difference of 0.3264. The difference between the second and third eigenvalues is 0.0232; the next difference is 0.0049. Subsequent differences are even smaller. A sharp drop from one eigenvalue to the next may serve as another indicator of how many eigenvalues to consider. A scree plot is the plot of $\hat \lambda$ versus $i$, which is a graphical way to determine the number of principal components to retain. The number of components is determined at the point beyond which the remaining eigenvalues are all relatively small and of comparable size. Below we draw the scree plot using screeplot() functio from basic "stats" package. In screeplot() function, the first argument is the object from princomp() function. 
+
+```{r}
+screeplot(pc.places, pch=16, col="green", cex=1, type = "lines", 
+          lwd=1.5,  main = "Screeplot for Places Rated data")
+```
+
+In the screeplot, an elbow occurs in the plot at $i=3$. That is, the eigenvalues after$\hat \lambda_3$ are all relatively small and about the same size. In this case, it appears that two or perhaps three sample principal components effectively summarize the total sample variance. First three principal components collectively explain 87% of the total variation. This is an acceptably large percentage. Consequently, sample variation is summarized very well by first three principal components and a reduction in the data from 329 observations on 9 variables to 329 observations on 3 principal components is reasonable.
+
+
+Next, we will write down the estimated principal components. For Places Rated example, the first principal component can be written using the loadings or scores as provided in the R output below. In loadings, omitted values are not zero but are close to zero in value and should be ignored. In R results, loadings with an absolute value less than 0.1 are not displayed. 
+
+```{r}
+result.places$loadings
+```
+The estimated first three principal components can be computed using the elements appear columns Comp.1, Comp.2, and Comp.3 in "Loadings" section of the output above, Or, you may get them using the code below:
+
+
+```{r}
+loads.pc123=round(result.places$loadings[,1:3], digits=4)
+loads.pc123
+```
+Thus, considering the absolute value of laodings greater than 0.1, the estimated first principal component for the Places Rated data is:
+
+$\hat Y_1$ = $0.4078(health)+0.1(crime)+0.15(transportation)+0.874(arts)+0.159(recreation)$
+
+
+In order to complete this formula and compute the principal component for the individual community of interest, plug in that community's log transformed values for each of these variables. A fairly standard procedure is to use the difference between the variables and their sample means rather than the raw data. This is known as a translation of the random variables. Translation does not affect the interpretations because the variances of the original variables are the same as those of the translated variables.
+
+
+The sign of the loadings or coefficients associated with a principal component indicates the direction of linear relationship with that PC and the corresponding X variable. For example, all the loadings of first PC are positive indicating that all X variables are positively correlated with first PC. For second PC, all variables are positively associated except for health and education. 
+
+
+The magnitudes of the coefficients give the contributions of each variable to that component. However, the magnitude of the coefficients also depends on the variances of the corresponding variables. We find the sample variance for each variable, and compare it with the associated loadings of each principal component. 
+
+```{r}
+round(sapply(places.trs, var), digits=4)#finding sample variance of each variable
+```
+
+The large absolute coefficient in $\hat Y_1$ and $\hat Y_2$, 0.874 and 0.859, respectively correspond to the two largest variances associated with arts and health variables, (0.2972 and 0.1027), respectively. The two variables with large variances have notable influences on the first two principal components. In general, variables with the highest sample variances will tend to be emphasized in the first few principal components. 
+
+
+We will now interpret the principal component results:
+
+First Principal Component - PC1
+
+The first principal component increases with increasing Arts and Health, and to some extent Transportation, and Recreation scores. This component can be viewed as a measure of the quality of Arts, Health, Transportation, and Recreation. Furthermore, we see that the highest loading in the first principal component is associated with the Arts variable. Thus, we can state that  this principal component is primarily a measure of the Arts. It would follow that communities with high values tend to have a lot of arts available, in terms of theaters, orchestras, etc. Whereas communities with small values would have very few of these types of opportunities.
+
+
+Second Principal Component - PC2
+
+The second principal component increases with only one of the values, decreasing Health. This component can be viewed as a measure of how unhealthy the location is in terms of available health care including doctors, hospitals, etc.
+
+Third Principal Component - PC3
+
+The third principal component increases mostly with increasing Crime and Recreation. This suggests that places with high crime also tend to have better recreation facilities.
+

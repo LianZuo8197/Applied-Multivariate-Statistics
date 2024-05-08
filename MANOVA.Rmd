@@ -1,0 +1,136 @@
+---
+title: "MANOVA Test"
+author: "Tanweer Shapla"
+date: "`r Sys.Date()`"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = T, results=T, message = F, warning = F, fig.show = "nohide", comment="")
+```
+
+## Example 1: MANOVA test of pottery data
+
+We will introduce the Multivariate Analysis of Variance with the Romano-British Pottery data example.
+
+Pottery shards are collected from four sites in the British Isles:
+
+L: Llanedyrn
+
+C: Caldicot
+
+I: Isle Thorns
+
+A: Ashley Rails
+
+Subsequently, we will use the first letter of the name to distinguish between the sites.
+
+Each pottery sample was returned to the laboratory for chemical assay. In these assays the concentrations of five different chemicals were determined:
+
+Al: Aluminum
+
+Fe: Iron
+
+Mg: Magnesium
+
+Ca: Calcium
+
+Na: Sodium
+
+We will abbreviate the chemical constituents with the chemical symbol in the examples that follow.
+
+MANOVA will allow us to determine whether the chemical content of the pottery depends on the site where the pottery was obtained. 
+
+
+Before carrying out a MANOVA, first, check the model assumptions:
+
+Common group mean: The data from group i has common mean vector $\bm \mu_i$.
+
+Homogeneity of covariance matrix: The data from all groups have a common variance-covariance matrix $\bm \Sigma$.
+
+Independence: The subjects are independently sampled.
+
+Normality: The data are multivariate normally distributed.
+
+
+Checking assumptions for pottery data:
+
+Assumption 1 Common group mean vector: The data from group i have a common mean vector $\bm \mu_i$.
+
+This assumption says that there are no subpopulations with different mean vectors. Here, this assumption might be violated if pottery collected from the same site had inconsistencies.
+
+
+Assumption 2 Homogeneity of covariance matrix: We perform Box's M test to verify this assumption. 
+
+```{r}
+setwd("C:/Users/tshapla/Desktop/COURSES/Stat 577/RPrograms")
+pottery=read.csv("pottery.csv", header=T)
+head(pottery)
+library(car)
+library(carData)
+library(broom)
+library(heplots)
+boxM(pottery[, 2:5],pottery[, 1])
+```
+Assumption 3 Independence: The subjects are independently sampled. This assumption is satisfied if the assayed pottery is obtained by randomly sampling the pottery collected from each site. This assumption would be violated if, for example, pottery samples were collected in clusters. In other applications, this assumption may be violated if the data were collected over time or space.
+
+Assumption 4 Normality: The data are multivariate normally distributed. Below we perform multivariate shapiro test to verify multivariate normality. 
+
+```{r}
+library(mvnormtest)
+pottery.res=pottery[, 2:6]
+mshapiro.test(t(pottery.res))
+```
+Note that both homogeneity of covariance matrix and multivariate normality assumptions are violated for the pottery data. For large samples, the Central Limit Theorem says that the sample mean vectors are approximately multivariate normally distributed, even if the individual observations are not. For the pottery data, however, we have a total of only N = 26 observations, including only two samples from Caldicot. With a small N, we cannot rely on the Central Limit Theorem. Therefore, a normalizing and variance-stabilizing transformation may be applied before we perform MANOVA. 
+Note that, if you have balanced design (i.e., groups with similar sizes), you don’t need to worry too much about violation of the homogeneity of variances-covariance matrices and you can continue your analysis.
+
+However, having an unbalanced design is problematic. Possible solutions include: 1) transforming the dependent variables; 2) running the test anyway, but using Pillai’s multivariate statistic instead of Wilks’ statistic.
+
+Also, among four test statistics, namely, Wilk's lambda, Pillai, Lawley-Hotelling, and Roy's greatest root, the Pillai test statistic is more robust to departure from assumptions. Therefore, we will make the MANOVA test conclusion based on the p-value associated with the Pillai test statistic. 
+
+
+```{r}
+library(carData)
+library(car)
+manova_outputs=manova(cbind(al, fe, mg, ca, na)~site, data=pottery)
+summary(manova_outputs)
+
+```
+
+It was found, therefore, that there are differences in the concentrations of at least one chemical element between at least one pair of sites ($p-value<0.001$).
+
+Upon rejection of MANOVA test of equality of group mean vectors, we now assess the significance of individual variables (chemical elements) by carrying out individual ANOVAs to test:
+
+$H_{0k}:\mu_{1k}=\mu_{2k}=\mu_{3k}=\mu_{4k}$ for each chemical $k, k=1, ...,5$. 
+
+We will reject the null hypothesis if $p-value < \frac{0.05}{5}=0.01$. Note that the p-value is compared with $\frac{\alpha}{p}$ to adjust for Bonferroni correction.
+
+```{r}
+results=array(0, c(5,2))
+for (i in 1:5){
+anova=aov(pottery[,i+1]~site, data=pottery)
+results[i,]=as.numeric(summary(anova)[[1]][1,4:5])
+}
+colnames(results)=c("F statistic", "p value")
+results
+```
+
+
+Because the p-values all fall below 0.01, we can see that all tests are significant at the 0.05 level under the Bonferroni correction.
+
+Conclusion: The means for all chemical elements differ significantly among the sites. For each element, the means for that element are different for at least one pair of sites.
+
+
+## Example 2: MANOVA Test for iris data
+
+For iris data, consider only Sepal length and Petal length as response variables. Perform the following tasks: 
+
+1. Check the multivariate normality assumption
+
+2. Homogeneity of covariance matrix assumption
+
+3. Perform MANOVA test
+
+4. Post-hoc tests: Univariate ANOVA
+
+

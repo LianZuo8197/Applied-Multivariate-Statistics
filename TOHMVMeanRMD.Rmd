@@ -1,0 +1,166 @@
+---
+title: "Test of Hypothesis for Multivariate Mean: One- and Two-sample"
+author: "Tanweer Shapla"
+date: "`r Sys.Date()`"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Hotelling's $T^2$ test is a multivariate statistical test used to see if p popultion means have particular values, or to compare the means of two groups. It is an extension of the univariate t-test to multiple dimensions. Hotelling's $T^2$ test is particularly useful in cases where you have multiple dependent variables and you want to determine if there are significant differences between the means of these variables across two groups.
+
+Here are the key steps for performing Hotelling's $T^2$ test:
+
+Assumptions:
+
+1. Multivariate Normality: The data should follow a multivariate normal distribution.
+
+2. Homogeneity of Covariance: The variances of the groups should be equal across all outcome variables.
+
+3. Random Sampling: The data should be obtained through random sampling.
+
+
+
+## Hotelling's T2 test for One-sample mean
+
+Here the null hypothesis is $H_0:\bm \mu=\bm \mu_0$, and the alternative hypothesis is $H_a:\bm \mu \ne\bm \mu_0$.
+
+Below we work on swiss data considering 3 variables, namely, Agriculture, Examination, and  Education. We use Hotelling's $T^2$ test statistic to test one sample multivariate mean. 
+
+$T^2=n(\bm \bar x-\bm \mu_0)' \bm S^ {-1} (\bm \bar x-\bm \mu_0)$.
+
+Under the null hypothesis, $T^2$ follows an $F$ distribution with numerator degrees of freedom $p$ and denominator degrees of freedom $n-p$.
+
+We wish to test $H_0:\bm \mu=(51,16,11)'$ vs $H_a:\bm \mu \ne(51,16,11)'$. We use 
+HotellingsT2() function available in ICSNP package from R. 
+
+
+```{r comment=""}
+#downloading necessary packages below
+#install.packages("ICSNP")
+#ICSNP depends on mvtnorm and ICS packages
+library(mvtnorm)
+library(ICS)
+library(ICSNP) #needed to use HotellingsT2()
+
+
+
+newswiss=subset(swiss, select=c("Agriculture", "Examination","Education"))
+colMeans(newswiss) #calculating mean for each variable
+
+HotellingsT2(newswiss, mu=c(51,16,11), test="f")
+```
+
+Based on the p-value, we fail to reject the null hypothesis at $\alpha = 0.05$ level, and conclude that the true population means are not significantly different than $\bm \mu_0=(51, 16, 11)'$. 
+
+To test $H_0:\bm \mu=(0,0,0)'$, we use 
+
+HotellingsT2(newswiss, mu=NULL, test="f").
+
+If we want to use the chi-squared approximation of Hotelling's test statistic to test $H_0:\bm \mu=(51,16,11)'$ vs $H_a:\bm \mu \ne(51,16,11)'$, we use test="chi" option. Note that if we do not specify anything, then the decision is made based on the F distribution. 
+
+```{r comment=""}
+HotellingsT2(newswiss, mu=c(51,16,11), test="chi")
+```
+
+
+
+
+## Hotelling's T2 test for Two-sample means
+
+Here we wish to test if the two population mean difference is equal to zero or some specific number. 
+
+Thus, for testing mean difference is zero or not, the null and alternative hypotheses are
+
+$H_0:\bm \mu_1=\bm \mu_2$ vs $H_a:\bm \mu_1 \ne \bm \mu_2$
+
+For testing mean difference equal to some constant or not, the null and alternative hypotheses are
+
+$H_0:\bm \mu_1-\bm \mu_2=\bm c$ vs $H_a:\bm \mu_1 - \bm \mu_2 \ne \bm c$ where $\bm c$ is a vector of $p$ constants $c_1, c_2, ..., c_p$. 
+
+## Example 2 
+
+In this example, we consider two sets of data, where each set is generated from a 2-variate normal distribution with specific mean vector $\bm \mu$ and covariance matrix $\bm \Sigma$. Suppose first and second set have respectively 10 and 20 random observations.
+
+```{r comment=""}
+set.seed(12)
+x=rmvnorm(10, mean=c(3, 2), sigma=matrix(c(2,.5,.5,1), nrow=2,ncol=2))
+#print(x)
+y=rmvnorm(20, mean=c(5, 6), sigma=matrix(c(2,.5,.5,1), nrow=2,ncol=2))
+#print(y)
+```
+
+Now we perform Hotelling's T2 test to see if the mean difference between the two datasets is (-2,-4), that is,
+
+$H_0:\bm \mu_1-\bm \mu_2=(-2,-4)'$ vs $H_a:\bm \mu_1 - \bm \mu_2 \ne (-2,-4)'$
+
+```{r comment=""}
+HotellingsT2(x, y, mu=c(-2,-4)) # testing if mean difference is (-2, -4)
+```
+
+Based on the p-value of 0.1868, we fail to reject the null hypothesis as it is expected. 
+
+
+For the same data, we now wish to test if the mean difference is (0,0), that is, 
+
+$H_0:\bm \mu_1=\bm \mu_2$ vs $H_a:\bm \mu_1 \ne \bm \mu_2$
+
+```{r comment=""}
+HotellingsT2(x, y, mu=NULL) 
+```
+
+Once $H_0$ is rejected, we would like to see which variable mean difference is significantly different from the hypothesized value. This can be achieved by forming Bonferroni confidence intervals for each mean difference. 
+
+We find Bonferroni CI for each mean using t.test() function:
+
+```{r comment=""}
+t.test(x[,1],y[,1], mu=0, alt="t", conf.level = 1-0.05/2)
+t.test(x[,2],y[,2], mu=0, alt="t", conf.level = 1-0.05/2)
+```
+Since the Bonferroni confidence interval (-3.926062, -1.617985) of variable 1 includes -2, we conclude that the mean difference of two groups for variable 1 is not significantly different than -2 at 5% level of significance. From the Bonferroni confidence interval (-5.122080, -3.442055) of variable 2 we can infer that the mean difference of two groups for variable 2 is not significantly different than -4 at 5% level of significance.
+
+Note that both confidence intervals do not include zero. Therefore, we can conclude that the true mean difference for each group is significantly different than zero at 5% level of significance.  
+
+
+## Example 3: Psychological data
+
+In this example, we will use Psychological Test data that is available 
+in Canvas in Data unit. Download data from canvas, save it in a folder
+and use setwd() function to provide the location of the data. 
+
+```{r comment=""}
+setwd("C:/Users/tshapla/Desktop/COURSES/Stat 577/RPrograms")#change this path 
+
+PT=read.table("PsychologicalTests.DAT", header=F)
+colnames(PT)=c("gender", "t1","t2", "t3", "t4")
+library(ICSNP)
+gender=as.factor(PT$gender)
+with(PT,HotellingsT2(cbind(t1,t2,t3,t4)~gender)) 
+```
+
+## Finding Bonferroni Confidence Intervals
+
+Since we reject the null hypothesis above, we now wish to investigate which mean differences are significantly different than zero. We do so by constructing  Bonferroni confidence intervals for each variable. 
+
+```{r comment=""}
+t.test(t1~gender, data=PT, conf.level = 1-0.05/4, alt="t") 
+t.test(t2~gender, data=PT,conf.level = 1-0.05/4, alt="t")
+t.test(t3~gender, data=PT,conf.level = 1-0.05/4, alt="t")
+t.test(t4~gender, data=PT, conf.level = 1-0.05/4, alt="t")
+```
+
+
+
+Or, alternately:
+
+```{r comment=""}
+ci=array(0,c(4,2))
+for (i in 2:5){
+  result=t.test(PT[,i]~gender,conf.level =1-0.05/4, alt="t")
+  ci[i-1,]=result$conf.int
+}
+print(ci)
+```
+
