@@ -1,0 +1,84 @@
+---
+title: "hw2"
+author: "LianZuo"
+date: "`r Sys.Date()`"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# Stat 577 Homework 2
+# Question 1
+```{r}
+set.seed(1234)
+z1 <- rnorm(50, 0,1)
+z2 <- rnorm(50, 0,1)
+mu_x <- 10
+mu_y <- 20
+sigma_x <- 1
+sigma_y <- 2
+rho <- 0.8
+X <- sigma_x * z1 + mu_x
+Y <- sigma_y * (rho * z1 + sqrt(1 - rho^2) * z2) + mu_y
+D <- cbind(X, Y)
+mean_vec<- colMeans(D)
+mean_vec
+cov_matrix <- cov(D)
+cov_matrix
+
+# Calculate Mahalanobis distance
+mahal_D <- mahalanobis(D, center = mean_vec, cov = cov_matrix)
+mahal_D
+
+# Degrees of freedom for Chi-squared distribution
+df <- 2  # Since we have 2 variables
+
+# Calculate the expected quantiles
+theo.quan<- qchisq(ppoints(50), df)
+
+# Create the QQ plot
+qqplot(theo.quan, mahal_D,
+       xlab = "Theoretical Quantiles",
+       ylab = "Observed Mahalanobis Distance",
+       main = "Chi-squared QQ Plot",
+       pch=16,col=3)
+
+# Draw a reference line
+abline(0, 1, col = "red")
+
+# Show the plot
+#Install. packages("mvnormtest)
+library(mvnormtest)
+mshapiro.test(t(D))
+#The multivariate Shapiro-Wilk p-value is not significant.Therefore, we accept the null hypothesis and conclude that the data is coming from a bivariate normal distribution.
+
+```
+# Question 2
+```{r}
+goods <- read.table("C:/Users/lian/Desktop/goods.txt",header=F)
+goods <- goods[,-1]
+colnames(goods) <- c("x1","x2","x3","x4")
+smean <- colMeans(goods)
+scov <- cov(goods)
+print (list(smean,scov))
+n <- nrow(goods)
+mhd.goods <- mahalanobis(goods,smean,scov)
+mhd.goods
+theo.quan2 <- qchisq(ppoints(n),4)# df=number of variables = 4
+qqplot(theo.quan2,mhd.goods,xlab = "Theretical quantiles",
+       ylab="Mahalanobis distances",pch=16,col=3,main="QQ plot for goods data")
+abline(0,1)# drawing a reference line
+
+#install.packages("mvnormtest")
+library(mvnormtest)
+mshapiro.test(t(goods))
+# Formal test for checking normality:Shapiro-Wilk test
+attach(goods)
+shapiro.test(x1)
+shapiro.test(x2)
+shapiro.test(x3)
+shapiro.test(x4)
+
+```
+

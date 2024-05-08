@@ -1,0 +1,131 @@
+---
+title: "577-HW1-LianZuo"
+author: "LianZuo"
+date: "`r Sys.Date()`"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,comment = "")
+```
+
+## Question 1
+```{r}
+# a. the mean of each variable is as follows
+
+library(carData)
+names(Baumann)
+attach(Baumann)
+sapply(Baumann[,-1], mean)
+
+# b. the covariance matrix with 3 decimal places is as follows, the dimension of this matrix is 5*5.
+covb <- round(cov(Baumann[,-1]),digits = 3)
+covb
+
+# c. The covariance value between pretest.1 and pretest.2 variables is 2.238
+cov12 <- covb[1,2]
+cov12
+
+# d.the correlation matrix with 3 decimal places is as follows, the dimension of this matrix is 5*5
+corrd <- round(cor(Baumann[,-1]),digits = 3)
+corrd
+
+# e.The correlation value between post.test.1 and post.test.2 variables is 0.335
+cor12 <- corrd[3,4]
+cor12
+```
+
+## Question 2
+ Draw a bivaritate boxplot for pretest.1 and pretest.2 variables. In your graph, pretest.1 and pretest.2 variables will go along x and y axis, respectively. Find the index of any outlier(s) that is outside the fence (the outer ellipse). Write down the text “Outlier” to the right of the outlier point in the graph. Make sure to have x and y axes titles as well as the graph title.
+
+```{r}
+#install.packages("MVA")
+library(tools)
+library(HSAUR2)
+library(MVA)
+attach(Baumann)
+bvbox(cbind(pretest.1,pretest.2),xlab="prestest.1",ylab = "prestest.2",pch=16,cex=1,col=2,,main="Bivariate Boxplot for finding a outlier")
+n=nrow(Baumann)
+out=match(sort(pretest.2)[n],pretest.2)
+out
+Baumann[out,2:3]
+text(pretest.1[out], pretest.2[out], labels = "Outlier", cex = 1, col=3, pos = 4)
+
+```
+
+## Question 3
+Draw a convex hull for post.test.1 and post.test.2 variables. In your graph, post.test.1 and post.test.2 variables will go along x and y axis, respectively. Make sure to have x and y axes titles as well as the graph title. Report the index of extreme points in each direction.
+```{r}
+extr.s=chull(cbind(post.test.1, post.test.2))
+extr.s
+cbind(post.test.1[extr.s], post.test.2[extr.s])#give extreme points
+extr.s=c(extr.s, extr.s[1])
+plot(post.test.1, post.test.2,xlab = "post.test.1",ylab = "post.test.2", pch = 16, col = 1, cex = 0.8, main="Convex hull for post.test.1 and post.test.2")
+lines(post.test.1[extr.s], post.test.2[extr.s], type="l", col="red", lwd=1.2)
+
+```
+
+
+## Question 4
+ Draw a scatterplot matrix of the following four variables: pretest.1,pretest.2,post.test.1, post.test.2 and provide your graph below.
+
+```{r}
+pairs(cbind(pretest.1, pretest.2, post.test.1, post.test.2), panel=panel.smooth, col="green",gap = 0, lwd = 1, pch = 16, cex = 0.6)
+```
+
+## Question 5
+
+```{r}
+set.seed(1233)
+z=matrix(runif(30,1,2), nrow=6, ncol=5, byrow=F)
+z
+
+# a.	z’z is symmetric
+A <- t(z)%*%z
+A
+
+# b.	Find the eigenvalues of z’z.
+eigen(A)
+eigen(A)$values
+
+# c.	Based on the eigenvalues of z’z, it is positive definite.
+
+# d. the determinant of z’z is reported as follows.  the determinant of z’z is equal to the product of the eigenvalues
+det(A)
+d2=prod(eigen(A)$values)
+all.equal(det(A),d2)
+
+# e.	the trace of z’z is equal to the sum of the eigenvalues.
+diag(A) #extracting diagonal elements of A
+sum(diag(A)) # trace of A
+sum(eigen(A)$values)
+all.equal(sum(diag(A)),sum(eigen(A)$values))
+
+# f. the generalized inverse matrix of z’z is reported in two methods
+#generalized inverse of matrix A
+Lambda=eigen(A)$values
+P=eigen(A)$vectors 
+gen.inv.A = P %*%solve(diag(Lambda)) %*%t(P)
+gen.inv.A
+require(MASS) # the second method with ginv function
+ginv(A)
+
+# g.	Find the square root matrix of z’z.
+sq.root.A=P%*%diag(sqrt(Lambda))%*%t(P)
+sq.root.A
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

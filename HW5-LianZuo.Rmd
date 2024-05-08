@@ -1,0 +1,98 @@
+---
+title: "HW5-577"
+author: "LianZuo"
+date: "`r Sys.Date()`"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,comment = "")
+```
+
+1.	 Read the description of the data from Help page. Name the variables that are discrete, continuous and categorical.
+
+discrete variables: cyl,carb
+
+continuous variables:pmg,disp,hp,drat,wt,qsec
+
+categorical variables:vs,am,gear
+
+2.	 Decide how many factors you may consider for factor analysis by
+a.	finding number of eigenvalues that are greater than the average eigenvalue. (You should report all the eigenvalues in your answer).
+
+We may consider 2 factors in our study.
+```{r}
+(ev.mtcars <- eigen(cor(mtcars))$values)
+mean(ev.mtcars)
+which(ev.mtcars>mean(ev.mtcars))
+```
+
+b.	drawing a plot of eigenvalues and checking the point beyond which eigenvalues are relatively small and the line graph connecting has a sharp drop. (You should provide your graph here.)
+
+We see that a sharp fall occurs at the second eigenvalue and afterwards the line has a very small slope and becomes more flat.
+```{r}
+library(ggplot2)
+x <- 1:11
+ev.mtcars.data <- data.frame(cbind(x,ev.mtcars))
+ggplot(ev.mtcars.data,mapping = aes(x=x,y=ev.mtcars))+geom_point()+geom_line()
+```
+
+
+Now, perform a factor analysis using 3 factors with “varimax” rotation and answer the following questions.
+```{r}
+mtcars.fac.vm <- factanal(mtcars,factors = 3,rotation = "varimax")
+mtcars.fac.vm
+```
+
+
+3.	 Is it sufficient to have 3 factors in this study? Justify your answer by providing the test statistic value, and p-value.
+
+Since p-value is 0.205, The chi square statistic is 30.53 on 25 degrees of freedom. we conclude that 3 factors considered are sufficient to the fit.
+
+4.	 Using a cutoff value of 0.6, write down the variables that constitute factors 1, 2 and 3.
+
+Variables mpg,cyl,disp,drat,wt,am and gear can be associated with Factor 1.
+
+Variables cyl, hp, qsec and vs can be descibed by Factor 2.
+
+Factor 3 can be considered as a measure of carb variable.
+
+5.	 What are the estimated error variances associated with drat and am variables?
+
+```{r}
+ mtcars.fac.vm$uniquenesses[c(5,9)]
+```
+The estimated error variances associated with drat and am variables is 0.2899972 and 0.2083812 .
+
+6.	 Show the calculation how the sum of squared loadings for factor 1 is 4.38.
+
+$4.38=0.643^2+(-0.618)^2+(-0.719)^2+(-0.291)^2+0.804^2+(-0.778)^2+(-0.177)^2+0.295^2+0.880^2+0.908^2+0.114^2$
+
+```{r}
+loads <- mtcars.fac.vm$loadings
+apply(loads^2,2,sum)[1]
+```
+
+7.	  How much variance among the observed variables is explained by factor 2?
+
+  The variance among the observed variables is explained by factor 2 is 3.520 .
+
+8.	 Show the calculation how the proportion of variance explained by factor 2 is found to be 0.320.
+```{r}
+round(apply(loads^2,2,sum)[2]/11,2)
+```
+9.	[2 points] Write down the variable that is highly correlated with factor 1. What is this correlation value?
+
+The gear variable that is highly correlated with factor 1 and its correlation value is 0.908  .
+
+10.	[2 points] Write down the variable that is highly correlated with factor 2. What is this correlation value?
+
+The qsec variable that is highly correlated with factor 2 and its correlation value is -0.946 .
+
+11.	[2 points] How much variance in variable hp is explained by all the factors in the model? What do we call this variance?
+
+```{r}
+communality <- apply(loads^2,1,sum)
+communality[4]
+```
+The variance in variable hp is explained by all the factors in the model is 0.8732196 , we call this variance as communality or the common variance.

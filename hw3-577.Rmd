@@ -1,0 +1,131 @@
+---
+title: "HW3-577"
+author: "LianZuo"
+date: "`r Sys.Date()`"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,results=F, message = F, warning = F, fig.show = "nohide", comment="")
+```
+
+# Question 1
+
+ai). Test Statistic Value: 162.21
+
+aii). Numerator degrees of freedom: 4, Denominator degrees of freedom: 3
+
+aiii). The p-value associated with the test is :p-value  =0.0007784
+
+aiv). Conclusion at α=0.05 Level of Significance: The p-value(0.0007784) is less than 0.05, we would reject the null hypothesis:true location is not equal to c(145,165,195,190)
+
+av). By constructing Bonferroni confidence intervals for each population mean with corrected confidence interval, we find the variable length 1 and length 2 is not significant which their p-value are large than $\alpha=0.05$, the varibale length 3 and length 4 is significant differ from the hypothesized value.
+
+# Question2
+
+ai). Test Name: Hotelling T-squared test.
+
+aii). Test Statistic Value : $T^2=72.706$ 
+
+aiii). Numerator degrees of freedom: 3 ,Denominator degrees of freedom: 84
+
+aiv). the p-value associated with the test:p-value < 2.2e-16
+
+av). Conclusion at α=0.05 Level of Significance: The p-value(p-value < 2.2e-16)  which is significant,we would reject the null hypothesis, so we conclude that there is evidence to suggest that the population mean vector is not equal to μ=[500, 50, 30]'.
+
+b). By constructing Bonferroni confidence intervals for each population mean with corrected confidence interval, we find the variable X1,X2 and X3 are all significant differ from the hypothesized value.
+
+c) The QQ plots for each of the variables in the study are as follows. From the QQ plots we found that the variable X1 and X3 appear to be normally distributed, but the variable X2 doesn't appear to be normally distributed.
+
+d) By performing Shapiro-Wilk test of normality for each variable at 5% level of significance. the p-value of variable X1 and X3 is 0.6861 and 0.5358 separately which is great than 0.05 (at a 5% significance level), we would fail to reject the null hypothesis and conclude that the variable X1 and X3 is  normally distributed, and the p-value of variable X2 is 0.03872 which is less than 0.05 (at a 5% significance level), we would reject the null hypothesis and conclude that the variable X2 is not normally distributed.
+
+e) Based on the conclusion on part (d), the assumption of multivariate normality in part (a) is not valid. We find that one of the variables (X2) is not normally distributed based on the results of the Shapiro-Wilk test, it suggests that the multivariate normality assumption is not valid. 
+
+# Question3
+
+i). Null Hypothesis (H0): The population mean vectors of the pre-values and post-values are equal, which suggest there is no significant difference in the means between the two groups
+
+ii). Alternative Hypothesis (H1): The population mean vectors of the pre-values and post-values are not equal, indicating a significant difference in the means between the two groups.
+
+iii). Test statistic value: $T^2=101.67$ 
+
+iv). p-value associated with the test:p-value < 2.2e-16
+
+v). Conclusion :Based on the results, we would reject the null hypothesis in favor of the alternative, indicating a significant difference between the pre- and post-values at 5% level of significance.
+
+
+# R codes
+#Question 1
+```{r}
+#read the BearGrowth data
+setwd("D:/LianZuo/Applied Statistics Course Materials/STAT 577 - Applied Multivariate Statistics/data-577")
+BearGrowth <- read.table("BearGrowth.dat")
+#rename the colnames
+colnames(BearGrowth) <-c("weght1","weight2","weight3","weight4","length1","length2","length3","length4")
+BearGrowth <- BearGrowth[,5:8]
+# the null hypothesis is u=[145,165,195,190]'
+# using the Hotelling's Test
+HotellingsT2(BearGrowth,mu=c(145,165,195,190),test = "f")
+t.test(BearGrowth[,1],mu=145, alt="t", conf.level = 1-0.05/4)
+t.test(BearGrowth[,2],mu=165, alt="t", conf.level = 1-0.05/4)
+t.test(BearGrowth[,3],mu=195, alt="t", conf.level = 1-0.05/4)
+t.test(BearGrowth[,4],mu=190, alt="t", conf.level = 1-0.05/4)
+```
+# Question 2
+```{r}
+setwd("D:/LianZuo/Applied Statistics Course Materials/STAT 577 - Applied Multivariate Statistics/data-577")
+CLEP <- read.table("CollegeTest.DAT")
+colnames(CLEP) <- c("X1","X2",'X3')
+HotellingsT2(CLEP,mu=c(500,50,30),test = "f")
+nrow(CLEP)
+t.test(CLEP[,1],mu=500, alt="t", conf.level = 1-0.05/3)
+t.test(CLEP[,2],mu=50, alt="t", conf.level = 1-0.05/3)
+t.test(CLEP[,3],mu=30, alt="t", conf.level = 1-0.05/3)
+# c)
+## qqplot for varibale X1
+qqnorm(CLEP$X1,main = "QQ Plot for variable X1", xlab = "Theoretical Quantiles", ylab = "Sample Quantiles")
+qqline(CLEP$X1,col="red")
+## qqplot for varibale X2
+qqnorm(CLEP$X2,main = "QQ Plot for variable X2", xlab = "Theoretical Quantiles", ylab = "Sample Quantiles")
+qqline(CLEP$X2,col="green")
+## qqplot for varibale X3
+qqnorm(CLEP$X3,main = "QQ Plot for variable X3", xlab = "Theoretical Quantiles", ylab = "Sample Quantiles")
+qqline(CLEP$X3,col="blue")
+
+# d)
+shapiro.test(CLEP$X1)
+shapiro.test(CLEP$X2)
+shapiro.test(CLEP$X3)
+library(mvnormtest)
+mshapiro.test(t(CLEP))
+```
+
+
+```{r}
+# Question 3
+library(ICSNP)
+data("LASERI")
+laseri <- LASERI[, c("HRT1T4", "COT1T4", "SVRIT1T4", "PWVT1T4")]
+head(laseri)
+#HotellingsT2(laseri, mu=c(0,0,0,0), test="f")
+HotellingsT2(laseri, mu=NULL, test="chi")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,127 @@
+---
+title: "HW4-LianZuo"
+author: "Lian Zuo"
+date: "2023-11-13"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,comment = "",warning = F, results=T, message = F)
+```
+
+```{r}
+#install.packages("palmerpenguins")
+library(palmerpenguins)
+#head(penguins,3)
+names(penguins)
+dim(penguins)
+new.pengu=data.frame(na.omit(penguins[,c("species", "bill_length_mm", "bill_depth_mm",
+"flipper_length_mm", "body_mass_g")]))
+head(new.pengu,3)
+names(new.pengu)
+dim(new.pengu)
+#install.packages("mvnormtest")
+# library(mvnormtest)
+# mshapiro.test(t(new.pengu[,2:5]))
+
+```
+# 1. 
+Check the assumption of homogeneity of covariance matrix. Write down the
+conclusion of the test.
+```{r}
+#install.packages("heplots")
+library(car)
+library(carData)
+library(heplots)
+boxM(new.pengu[,2:5],new.pengu[,1])
+```
+
+Conclusion:The test statistic value is found to be 76.795 with a p-value = 1.365e-08. Therefore, we reject the null hypothesis and conclude that the population covariance matrices are not significantly different,so the data shows evidence of heterogeneity of covariance matrices at 5% level of significance (p-value = 1.365e-08).
+
+# 2. 
+Based on the conclusion in part 1, what type of discriminant function would you
+consider to predict group membership of penguins?
+
+Conclusion:Based on the conclusion in part 1, we can apply quadratic discriminant analysis instead of linear discriminant analysis for the data. 
+
+# 3. 
+a. Split the data into training set and testing set in the ratio 80:20. Use seed as 1234.
+```{r}
+# Split the data into training set (80%) and test set (20%)
+set.seed(1234)
+index=sample(1:nrow(new.pengu), floor(0.8*nrow(new.pengu)), replace=F)
+#head(index,3)
+train.data=new.pengu[index,]
+head(train.data,3)
+test.data=new.pengu[-index,]
+head(test.data,3)
+```
+
+b. Scale the variables if necessary.
+```{r}
+#install. packages("tidyverse")
+library(tidyverse) # to use select() function
+#library(dplyr)
+train.trs=data.frame(scale(select(train.data, where(is.numeric))))#scaling all numeric variables
+test.trs=data.frame(scale(select(test.data, where(is.numeric))))
+train.trs$Species=train.data$species
+test.trs$Species=test.data$species
+head(train.trs,3)
+head(test.trs,3)
+```
+
+c. Perform the appropriate discriminant analysis.
+```{r}
+#install.packages("MASS")
+#library(MASS)
+qda.pengu=MASS::qda(Species~., data=train.trs)
+qda.pengu
+```
+
+d. Find the model accuracy, and comment on the model efficacy.
+```{r}
+#prediction
+prediction.qda=predict(qda.pengu, test.trs, prior = qda.pengu$prior)
+#Model Accuracy
+accuracy=mean(prediction.qda$class==test.trs$Species)
+accuracy
+```
+Comment:The model efficacy is found to be about 92.75%, which is reasonably a high percentage. 
+
+e. Compute the confusion matrix, and comment on the findings.
+
+```{r}
+# Finding Confusion matrix
+#install.packages("caret")
+library(caret)
+confusion.matrix.qda <- confusionMatrix(prediction.qda$class, test.data$species)
+print(confusion.matrix.qda)
+```
+comment:The model has an overall accuracy of 92.75%, indicating good predictive performance.Adelie and Gentoo penguins are well-predicted, with high counts on the diagonal. However, Chinstrap penguins are occasionally confused with Adelie, as indicated by 5 counts in the cell.
+
+f. Use the discriminant function to predict the species of two penguins with the
+following measurements on the variables bill_length_mm, bill_depth_mm,
+flipper_length_mm, and body_mass_g, respectively. The variables are measured on
+the scale as the original data:Obs. 1 = (43.6, 13.9, 217, 4900),Obs. 2 = (39.3, 20.6,190, 3650)
+```{r}
+# Prediction of new observations
+qda.pengu2=MASS::qda(species~., data=train.data)
+bill_length_mm=c(43.6,39.3) 
+bill_depth_mm=c(13.9,20.6)
+flipper_length_mm=c(217,190)
+body_mass_g=c(4900,3650)
+new.untr <- data.frame(bill_length_mm, bill_depth_mm,flipper_length_mm, body_mass_g)
+predict.new.untr.qda=predict(qda.pengu2, new.untr, prior = qda.pengu2$prior)
+predict.new.untr.qda
+
+#prediction with scaled new observations
+ meancol=colMeans(train.data[,2:5])
+ sdcol=sapply(train.data[,2:5], sd)
+  new.tr=data.frame(scale(new.untr,meancol,sdcol))
+ qda.pengu=MASS::qda(Species~., data=train.trs)
+ predict(qda.pengu, new.tr, prior = qda.pengu$prior)
+```
+
+Comment:Obs.1 belongs to Gentoo group and Obs.2 belongs to Adelie group,respectively with posterior probability of 1 or very close 1.
+
+
